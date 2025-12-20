@@ -1,0 +1,181 @@
+/**
+ * Testing & API Examples
+ * Use with Postman, Insomnia, or curl
+ */
+
+// ============================================
+// 1. SIGN UP - Create new tenant and first user
+// ============================================
+
+POST http://localhost:5000/api/auth/signup
+Content-Type: application/json
+
+{
+  "tenantName": "Smith & Associates Law Firm",
+  "firstName": "Robert",
+  "lastName": "Smith",
+  "email": "robert.smith@lawfirm.com",
+  "password": "SecurePass123!"
+}
+
+// Expected Response (201):
+// {
+//   "success": true,
+//   "message": "Account created successfully",
+//   "data": {
+//     "tenant": {
+//       "id": "...",
+//       "name": "Smith & Associates Law Firm",
+//       "slug": "smith-associates-law-firm"
+//     },
+//     "user": {
+//       "id": "...",
+//       "firstName": "Robert",
+//       "lastName": "Smith",
+//       "email": "robert.smith@lawfirm.com",
+//       "role": "OWNER"
+//     },
+//     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+//   }
+// }
+
+// ============================================
+// 2. LOGIN
+// ============================================
+
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "robert.smith@lawfirm.com",
+  "password": "SecurePass123!"
+}
+
+// ============================================
+// 3. GET CURRENT USER
+// ============================================
+
+GET http://localhost:5000/api/auth/me
+Authorization: Bearer {YOUR_TOKEN_HERE}
+
+// ============================================
+// 4. GET TENANT INFO
+// ============================================
+
+GET http://localhost:5000/api/tenant/info
+Authorization: Bearer {YOUR_TOKEN_HERE}
+
+// ============================================
+// 5. UPDATE TENANT INFO
+// ============================================
+
+PUT http://localhost:5000/api/tenant/info
+Authorization: Bearer {YOUR_TOKEN_HERE}
+Content-Type: application/json
+
+{
+  "name": "Smith & Associates - Updated",
+  "timezone": "America/New_York",
+  "language": "en",
+  "website": "https://smithlawfirm.com"
+}
+
+// ============================================
+// 6. CREATE NEW USER IN TENANT
+// ============================================
+
+POST http://localhost:5000/api/users/users
+Authorization: Bearer {YOUR_TOKEN_HERE}
+Content-Type: application/json
+
+{
+  "firstName": "Sarah",
+  "lastName": "Johnson",
+  "email": "sarah.johnson@lawfirm.com",
+  "role": "ADVOCATE"
+}
+
+// ============================================
+// 7. GET ALL USERS IN TENANT
+// ============================================
+
+GET http://localhost:5000/api/users/users
+Authorization: Bearer {YOUR_TOKEN_HERE}
+
+// ============================================
+// 8. GET SPECIFIC USER
+// ============================================
+
+GET http://localhost:5000/api/users/users/{USER_ID}
+Authorization: Bearer {YOUR_TOKEN_HERE}
+
+// ============================================
+// 9. UPDATE USER
+// ============================================
+
+PUT http://localhost:5000/api/users/users/{USER_ID}
+Authorization: Bearer {YOUR_TOKEN_HERE}
+Content-Type: application/json
+
+{
+  "firstName": "Sarah",
+  "lastName": "Johnson",
+  "role": "ADMIN"  // Only OWNER/ADMIN can change roles
+}
+
+// ============================================
+// 10. DELETE USER (Soft Delete - sets isActive to false)
+// ============================================
+
+DELETE http://localhost:5000/api/users/users/{USER_ID}
+Authorization: Bearer {YOUR_TOKEN_HERE}
+
+// ============================================
+// 11. GET SUBSCRIPTION INFO
+// ============================================
+
+GET http://localhost:5000/api/tenant/subscription
+Authorization: Bearer {YOUR_TOKEN_HERE}
+
+// ============================================
+// ERROR RESPONSES
+// ============================================
+
+// 400 - Bad Request (Validation Error)
+{
+  "success": false,
+  "message": "Validation error",
+  "details": [
+    {
+      "message": "\"email\" must be a valid email",
+      "path": ["email"],
+      "type": "string.email"
+    }
+  ]
+}
+
+// 401 - Unauthorized (Missing/Invalid Token)
+{
+  "success": false,
+  "message": "No token provided. Please authenticate."
+}
+
+// 403 - Forbidden (Insufficient Permissions)
+{
+  "success": false,
+  "message": "Insufficient permissions for this action",
+  "requiredRole": ["OWNER", "ADMIN"],
+  "userRole": "ADVOCATE"
+}
+
+// 409 - Conflict (Duplicate Email)
+{
+  "success": false,
+  "message": "Email already registered"
+}
+
+// 500 - Server Error
+{
+  "success": false,
+  "message": "Internal server error"
+}
