@@ -42,6 +42,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /**
+ * Database Connection Middleware for Serverless
+ * Ensures connection is established before handling requests
+ */
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(503).json({
+      success: false,
+      message: 'Database connection unavailable. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
  * Health Check Endpoint
  */
 app.get('/health', (req, res) => {
@@ -120,11 +138,15 @@ app.use((err, req, res, next) => {
  */
 const startServer = async () => {
   try {
-    // Connect to MongoDB
+    // Connect to MongoDB with caching for serverless
     await connectDB();
 
-    // Initialize background jobs
-    initializeCronJobs();
+    // Initialize background jobs only if not in serverless environment
+    if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+      initializeCronJobs();
+    } else {
+      console.log('⚠️  Skipping cron jobs in serverless environment');
+    }
 
     // Start listening
     app.listen(PORT, () => {
@@ -134,7 +156,12 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('Failed to start server:', error);
-    process.exit(1);
+    // Don't exit in serverless - let it retry
+    if (process.env.VERCEL) {
+      console.error('⚠️  Server starting without database - will retry on requests');
+    } else {
+      process.exit(1);
+    }
   }
 };
 

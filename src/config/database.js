@@ -1,6 +1,19 @@
 const mongoose = require('mongoose');
 
+// Global cached connection for Vercel serverless functions
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 const connectDB = async () => {
+  // Return cached connection if it exists
+  if (cached.conn) {
+    console.log('✓ Using cached MongoDB connection');
+    return cached.conn;
+  }
+
   try {
     const mongoURI = process.env.MONGODB_URI;
     
@@ -8,16 +21,27 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+    // If no promise exists, create a new connection
+    if (!cached.promise) {
+      const opts = {
+        bufferCommands: false, // Critical for Vercel - disable buffering
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 45000,
+      };
 
-    console.log('✓ MongoDB connected successfully');
-    return mongoose.connection;
+      cached.promise = mongoose.connect(mongoURI, opts).then((mongoose) => {
+        console.log('✓ MongoDB connected successfully');
+        return mongoose;
+      });
+    }
+
+    // Wait for connection and cache it
+    cached.conn = await cached.promise;
+    return cached.conn;
+    
   } catch (error) {
+    cached.promise = null; // Reset promise on error
     console.error('✗ MongoDB connection failed:', error.message);
     console.error('\n📝 SETUP INSTRUCTIONS:');
     console.error('1. Go to https://www.mongodb.com/cloud/atlas');
@@ -29,10 +53,8 @@ const connectDB = async () => {
     console.error('   - # becomes %23');
     console.error('   - : becomes %3A');
     console.error('\nExample: mongodb+srv://user:pass%40word@cluster.mongodb.net/db');
-    
-    // Don't exit - allow server to start for testing without MongoDB
-    console.error('\n⚠️  Starting server WITHOUT database connection...');
-    console.error('⚠️  Sign-up and Login will fail until MongoDB is configured\n');
+    console.error('\n⚠️  Connection error - server will retry on next request\n');
+    throw error;
   }
 };
 
