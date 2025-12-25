@@ -25,6 +25,7 @@ const documentDiaryRoutes = require('./routes/documentDiaryRoutes');
 const taskToDoDiaryRoutes = require('./routes/taskToDoDiaryRoutes');
 const meetingDiaryRoutes = require('./routes/meetingDiaryRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const articleRoutes = require('./routes/articleRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -71,6 +72,7 @@ app.use('/api/diaries/documents', documentDiaryRoutes);
 app.use('/api/diaries/tasks', taskToDoDiaryRoutes);
 app.use('/api/diaries/meetings', meetingDiaryRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/articles', articleRoutes);
 
 /**
  * Swagger Documentation
